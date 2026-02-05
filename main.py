@@ -2,7 +2,7 @@ import discord
 from discord import app_commands
 import aiohttp
 
-TOKEN = "여기에_네_봇토큰"
+TOKEN = "여기에 네 봇토큰"
 
 class Bot(discord.Client):
 
@@ -83,3 +83,4 @@ async def 실행기정보(interaction: discord.Interaction, 이름: str):
     await interaction.response.send_message(embed=em, ephemeral=True)
 
 bot.run(TOKEN)
+
