@@ -1,32 +1,42 @@
 import discord
 from discord import app_commands
+import os
 
-TOKEN = "봇토큰여기"
+TOKEN = os.getenv("TOKEN")
 
-intents = discord.Intents.default()
-client = discord.Client(intents=intents)
-tree = app_commands.CommandTree(client)
+class MyClient(discord.Client):
+    def __init__(self):
+        intents = discord.Intents.default()
+        super().__init__(intents=intents)
+        self.tree = app_commands.CommandTree(self)
 
+    async def setup_hook(self):
+        await self.tree.sync()
+        print("슬래쉬 명령어 동기화 완료")
+
+client = MyClient()
 
 @client.event
 async def on_ready():
-    await tree.sync()
-    print("봇 온라인!")
+    print(f"{client.user} 온라인!")
 
-
-@tree.command(name="embed", description="임베드 전송")
+# ===== 슬래쉬 명령어 =====
+@client.tree.command(name="embed", description="임베드 전송")
 @app_commands.describe(
     title="제목",
-    description="내용 (줄바꿈은 \\n)",
+    content="내용",
     image="이미지 URL (선택)"
 )
-async def embed(interaction: discord.Interaction, title: str, description: str, image: str = ""):
-
-    description = description.replace("\\n", "\n")
+async def embed(
+    interaction: discord.Interaction,
+    title: str,
+    content: str,
+    image: str = ""
+):
 
     em = discord.Embed(
         title=title,
-        description=description,
+        description=content,
         color=0x2B2D31
     )
 
@@ -34,6 +44,5 @@ async def embed(interaction: discord.Interaction, title: str, description: str, 
         em.set_image(url=image)
 
     await interaction.response.send_message(embed=em)
-
 
 client.run(TOKEN)
