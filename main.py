@@ -1,48 +1,63 @@
 import discord
 from discord import app_commands
 import os
+from datetime import timezone
 
 TOKEN = os.getenv("TOKEN")
 
-class MyClient(discord.Client):
-    def __init__(self):
-        intents = discord.Intents.default()
-        super().__init__(intents=intents)
-        self.tree = app_commands.CommandTree(self)
+intents = discord.Intents.default()
+client = discord.Client(intents=intents)
+tree = app_commands.CommandTree(client)
 
-    async def setup_hook(self):
-        await self.tree.sync()
-        print("슬래쉬 명령어 동기화 완료")
-
-client = MyClient()
 
 @client.event
 async def on_ready():
+    await tree.sync()
     print(f"{client.user} 온라인!")
 
-# ===== 슬래쉬 명령어 =====
-@client.tree.command(name="embed", description="임베드 전송")
+
+# ================= EMBED =================
+
+@tree.command(name="임베드", description="임베드 메시지 보내기")
 @app_commands.describe(
-    title="제목",
-    content="내용",
-    image="이미지 URL (선택)"
+    제목="임베드 제목",
+    내용="임베드 내용",
+    이미지="이미지 URL (선택)"
 )
 async def embed(
     interaction: discord.Interaction,
-    title: str,
-    content: str,
-    image: str = ""
+    제목: str,
+    내용: str,
+    이미지: str = None
 ):
 
-    em = discord.Embed(
-        title=title,
-        description=content,
+    e = discord.Embed(
+        title=제목,
+        description=내용,
         color=0x2B2D31
     )
 
-    if image:
-        em.set_image(url=image)
+    if 이미지:
+        e.set_image(url=이미지)
 
-    await interaction.response.send_message(embed=em)
+    await interaction.response.send_message(embed=e)
+
+
+# ================= USER CHECK =================
+
+@tree.command(name="확인", description="유저 정보 확인")
+@app_commands.describe(user="확인할 유저")
+async def check(interaction: discord.Interaction, user: discord.User):
+
+    created = user.created_at.astimezone(timezone.utc)
+
+    text = (
+        f"👤 닉네임: {user}\n"
+        f"🆔 아이디: {user.id}\n"
+        f"📅 계정 생성일: {created.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+    )
+
+    await interaction.response.send_message(text)
+
 
 client.run(TOKEN)
