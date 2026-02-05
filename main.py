@@ -35,7 +35,10 @@ async def embed(
     description: str,
     image: str = None
 ):
-    em = discord.Embed(title=title, description=description, color=0x2B2D31)
+    description = description.replace("\\n", "\n")
+
+em = discord.Embed(title=title, description=description, color=0x2B2D31)
+
 
     if image:
         em.set_image(url=image)
@@ -43,3 +46,4 @@ async def embed(
     await interaction.response.send_message(embed=em)
 
 bot.run(TOKEN)
+
