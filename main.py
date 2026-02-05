@@ -1,63 +1,83 @@
 import discord
-from discord import app_commands
-import os
-from datetime import timezone
+from discord.ext import commands
+from discord import Option
+import requests
+import datetime
 
-TOKEN = os.getenv("TOKEN")
+TOKEN = "여기에_봇토큰"
 
 intents = discord.Intents.default()
-client = discord.Client(intents=intents)
-tree = app_commands.CommandTree(client)
+bot = commands.Bot(intents=intents)
 
-
-@client.event
+@bot.event
 async def on_ready():
-    await tree.sync()
-    print(f"{client.user} 온라인!")
-
+    print("봇 온라인")
+    await bot.sync_commands()
 
 # ================= EMBED =================
 
-@tree.command(name="임베드", description="임베드 메시지 보내기")
-@app_commands.describe(
-    제목="임베드 제목",
-    내용="임베드 내용",
-    이미지="이미지 URL (선택)"
-)
+@bot.slash_command(name="임베드")
 async def embed(
-    interaction: discord.Interaction,
-    제목: str,
-    내용: str,
-    이미지: str = None
+    ctx,
+    제목: Option(str),
+    내용: Option(str),
+    이미지: Option(str, required=False)
 ):
 
-    e = discord.Embed(
-        title=제목,
-        description=내용,
-        color=0x2B2D31
-    )
+    embed = discord.Embed(title=제목, description=내용, color=0x2B2D31)
 
     if 이미지:
-        e.set_image(url=이미지)
+        embed.set_image(url=이미지)
 
-    await interaction.response.send_message(embed=e)
+    await ctx.respond(embed=embed, ephemeral=True)
 
+# ================= USER INFO =================
 
-# ================= USER CHECK =================
+@bot.slash_command(name="확인")
+async def 확인(ctx, 유저: Option(discord.User)):
 
-@tree.command(name="확인", description="유저 정보 확인")
-@app_commands.describe(user="확인할 유저")
-async def check(interaction: discord.Interaction, user: discord.User):
+    created = 유저.created_at.strftime("%Y-%m-%d %H:%M")
 
-    created = user.created_at.astimezone(timezone.utc)
+    embed = discord.Embed(title="유저 정보", color=0x2B2D31)
+    embed.add_field(name="닉네임", value=유저.name)
+    embed.add_field(name="ID", value=유저.id)
+    embed.add_field(name="계정 생성일", value=created)
+    embed.set_thumbnail(url=유저.avatar.url)
 
-    text = (
-        f"👤 닉네임: {user}\n"
-        f"🆔 아이디: {user.id}\n"
-        f"📅 계정 생성일: {created.strftime('%Y-%m-%d %H:%M:%S UTC')}"
-    )
+    await ctx.respond(embed=embed, ephemeral=True)
 
-    await interaction.response.send_message(text)
+# ================= EXECUTOR INFO =================
 
+@bot.slash_command(name="실행기정보")
+async def 실행기정보(ctx, 이름: Option(str)):
 
-client.run(TOKEN)
+    url = "https://weao.xyz/api/executors"
+
+    data = requests.get(url).json()
+
+    found = None
+
+    for exe in data:
+        if 이름.lower() in exe["title"].lower():
+            found = exe
+            break
+
+    if not found:
+        await ctx.respond("못찾음", ephemeral=True)
+        return
+
+    embed = discord.Embed(title=found["title"], color=0x2B2D31)
+
+    embed.add_field(name="버전", value=found["version"])
+    embed.add_field(name="감지됨", value=str(found["detected"]))
+    embed.add_field(name="무료", value=str(found["free"]))
+    embed.add_field(name="업데이트 상태", value=str(found["updateStatus"]))
+    embed.add_field(name="플랫폼", value=found["platform"], inline=False)
+
+    embed.add_field(name="웹사이트", value=found["websitelink"], inline=False)
+    embed.add_field(name="디스코드", value=found["discordlink"], inline=False)
+    embed.add_field(name="구매", value=found["purchaselink"], inline=False)
+
+    await ctx.respond(embed=embed, ephemeral=True)
+
+bot.run(TOKEN)
