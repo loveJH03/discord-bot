@@ -1,58 +1,58 @@
 import discord
-from discord.ext import commands
-from discord import Option
+from discord import app_commands
 import requests
-import datetime
 
 TOKEN = "여기에_봇토큰"
 
-intents = discord.Intents.default()
-bot = commands.Bot(intents=intents)
+class MyClient(discord.Client):
+    def __init__(self):
+        intents = discord.Intents.default()
+        super().__init__(intents=intents)
+        self.tree = app_commands.CommandTree(self)
 
-@bot.event
+    async def setup_hook(self):
+        await self.tree.sync()
+        print("슬래쉬 동기화 완료")
+
+client = MyClient()
+
+@client.event
 async def on_ready():
     print("봇 온라인")
-    await bot.sync_commands()
 
 # ================= EMBED =================
 
-@bot.slash_command(name="임베드")
-async def embed(
-    ctx,
-    제목: Option(str),
-    내용: Option(str),
-    이미지: Option(str, required=False)
-):
+@client.tree.command(name="임베드")
+async def embed(interaction: discord.Interaction, 제목: str, 내용: str, 이미지: str = None):
 
-    embed = discord.Embed(title=제목, description=내용, color=0x2B2D31)
+    em = discord.Embed(title=제목, description=내용, color=0x2B2D31)
 
     if 이미지:
-        embed.set_image(url=이미지)
+        em.set_image(url=이미지)
 
-    await ctx.respond(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=em, ephemeral=True)
 
 # ================= USER INFO =================
 
-@bot.slash_command(name="확인")
-async def 확인(ctx, 유저: Option(discord.User)):
+@client.tree.command(name="확인")
+async def 확인(interaction: discord.Interaction, 유저: discord.User):
 
     created = 유저.created_at.strftime("%Y-%m-%d %H:%M")
 
-    embed = discord.Embed(title="유저 정보", color=0x2B2D31)
-    embed.add_field(name="닉네임", value=유저.name)
-    embed.add_field(name="ID", value=유저.id)
-    embed.add_field(name="계정 생성일", value=created)
-    embed.set_thumbnail(url=유저.avatar.url)
+    em = discord.Embed(title="유저 정보", color=0x2B2D31)
+    em.add_field(name="닉네임", value=유저.name)
+    em.add_field(name="ID", value=유저.id)
+    em.add_field(name="계정 생성일", value=created)
+    em.set_thumbnail(url=유저.avatar.url)
 
-    await ctx.respond(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=em, ephemeral=True)
 
-# ================= EXECUTOR INFO =================
+# ================= EXECUTOR =================
 
-@bot.slash_command(name="실행기정보")
-async def 실행기정보(ctx, 이름: Option(str)):
+@client.tree.command(name="실행기정보")
+async def 실행기정보(interaction: discord.Interaction, 이름: str):
 
     url = "https://weao.xyz/api/executors"
-
     data = requests.get(url).json()
 
     found = None
@@ -63,21 +63,20 @@ async def 실행기정보(ctx, 이름: Option(str)):
             break
 
     if not found:
-        await ctx.respond("못찾음", ephemeral=True)
+        await interaction.response.send_message("못찾음", ephemeral=True)
         return
 
-    embed = discord.Embed(title=found["title"], color=0x2B2D31)
+    em = discord.Embed(title=found["title"], color=0x2B2D31)
 
-    embed.add_field(name="버전", value=found["version"])
-    embed.add_field(name="감지됨", value=str(found["detected"]))
-    embed.add_field(name="무료", value=str(found["free"]))
-    embed.add_field(name="업데이트 상태", value=str(found["updateStatus"]))
-    embed.add_field(name="플랫폼", value=found["platform"], inline=False)
+    em.add_field(name="버전", value=found["version"])
+    em.add_field(name="감지됨", value=found["detected"])
+    em.add_field(name="무료", value=found["free"])
+    em.add_field(name="플랫폼", value=found["platform"], inline=False)
 
-    embed.add_field(name="웹사이트", value=found["websitelink"], inline=False)
-    embed.add_field(name="디스코드", value=found["discordlink"], inline=False)
-    embed.add_field(name="구매", value=found["purchaselink"], inline=False)
+    em.add_field(name="웹", value=found["websitelink"], inline=False)
+    em.add_field(name="디스코드", value=found["discordlink"], inline=False)
+    em.add_field(name="구매", value=found["purchaselink"], inline=False)
 
-    await ctx.respond(embed=embed, ephemeral=True)
+    await interaction.response.send_message(embed=em, ephemeral=True)
 
-bot.run(TOKEN)
+client.run(TOKEN)
