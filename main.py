@@ -82,5 +82,6 @@ async def 실행기정보(interaction: discord.Interaction, 이름: str):
 
     await interaction.response.send_message(embed=em, ephemeral=True)
 
-bot.run(TOKEN)
+bot.run(MTQ2NzQzNzM1MzUwNDM0NjIzNA.Gr1jT_.Fy_9aVo16QqSjQpQRayAJA1I2PIUNUwCkXZlD4)
+
 
